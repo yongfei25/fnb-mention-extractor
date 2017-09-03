@@ -1,6 +1,8 @@
 import WikiTextHelper.{AnnotateOption, SentenceOption, TextData}
 import org.scalatest._
 
+import scala.collection.immutable.SortedMap
+
 class WikiTextHelperTest extends FunSuite {
   val paragraph: String =
     """
@@ -34,12 +36,44 @@ class WikiTextHelperTest extends FunSuite {
     val expected = Array(
       TextData("The", Option.empty, isLink = false),
       TextData("quick brown fox", Option("firefox"), isLink = true),
-      TextData("jumps", Option.empty, isLink = false),
-      TextData("over", Option.empty, isLink = false),
-      TextData("the", Option.empty, isLink = false),
+      TextData("jumps over the", Option.empty, isLink = false),
       TextData("lazy dog", Option.empty, isLink = true),
       TextData(".", Option.empty, isLink = false)
     )
     assert(textData.sameElements(expected))
+  }
+
+  test("WikiTextHelper should split entity") {
+    val entities = Array("quick brown fox", "lazy dog", "faith", "head with a brick", "life")
+    val text = "The quick brown fox jumps over the lazy dog. Sometimes life is going to hit you in the head with a brick. Don't lose faith. "
+    val splits = WikiTextHelper.splitEntity(text, entities)
+    val expected = Array(
+      ("The ", false),
+      ("quick brown fox", true),
+      (" jumps over the ", false),
+      ("lazy dog",true),
+      (". Sometimes ", false),
+      ("life", true),
+      (" is going to hit you in the ", false),
+      ("head with a brick", true),
+      (". Don't lose ", false),
+      ("faith", true),
+      (". ", false)
+    )
+    assert(splits.sameElements(expected))
+  }
+
+  test("WikiTextHelper should return annotations") {
+    val labels = SortedMap(
+      "firefox" -> "ORG",
+      "lazy dog" -> "PER",
+      "faith" -> "MISC",
+      "head with a brick" -> "PER",
+      "life" -> "ORG"
+    )
+    val text = "The [[quick brown fox|firefox]] jumps over the [[lazy dog]]. Sometimes life is going to hit you in the head with a brick. Don't lose faith. "
+    val annotated = WikiTextHelper.annotate(text, labels, AnnotateOption(" "))
+    val expected = "The/O quick/B-ORG brown/I-ORG fox/I-ORG jumps/O over/O the/O lazy/B-PER dog/I-PER ./O Sometimes/O life/B-ORG /O is/O going/O to/O hit/O you/O in/O the/O head/B-PER with/I-PER a/I-PER brick/I-PER ./O Don't/O lose/O faith/B-MISC ./O"
+    assert(annotated.equals(expected))
   }
 }
