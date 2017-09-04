@@ -40,6 +40,7 @@ object Main extends App {
     var cats = List[String]("各國飲食")
     var pageQueue = Queue[PageLink]()
     var labels = Map.empty[String, String]
+    var skipCount = 1 // how many levels we need to skip
 
     def linkTitle (sortKey: String, prefix: String) = {
       sortKey.replace(prefix, "").replaceAll("\\s+", " ").trim
@@ -56,12 +57,16 @@ object Main extends App {
       val catLinks = DbHelper.getCategoryLinksIn(conn, cats)
       processed = processed ++ cats
 
-      for {
-        page <- catLinks if page.linkType == LinkType.Page
-        title = linkTitle(page.sortKey, page.sortKeyPrefix) if validTitle(title)
-      } {
-        pageQueue = pageQueue.enqueue(PageLink(title, page.from))
-        labels += (title -> tag)
+      if (skipCount == 0) {
+        for {
+          page <- catLinks if page.linkType == LinkType.Page
+          title = linkTitle(page.sortKey, page.sortKeyPrefix) if validTitle(title)
+        } {
+          pageQueue = pageQueue.enqueue(PageLink(title, page.from))
+          labels += (title -> tag)
+        }
+      } else {
+        skipCount -= 1
       }
 
       cats = catLinks
@@ -78,6 +83,7 @@ object Main extends App {
     val annotationOption = AnnotateOption("")
     val outputWriter = new FileWriter(new File("annotations.txt"))
     var count = 0
+
     while (pageQueue.nonEmpty) {
       val dq = pageQueue.dequeue
       val link = dq._1
