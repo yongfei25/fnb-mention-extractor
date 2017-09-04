@@ -37,7 +37,7 @@ object Main extends App {
     val maxTokens = 50
     val excludeTitle = Set[String]("列表", "产品", "事件")
     var processed = Set[String]()
-    var cats = List[String]("各國飲食")
+    var cats = List[String]("各地飲食")
     var pageQueue = Queue[PageLink]()
     var labels = Map.empty[String, String]
     var skipCount = 1 // how many levels we need to skip
