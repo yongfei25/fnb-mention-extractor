@@ -8,5 +8,6 @@ case class CategoryLink
   to: String,
   sortKey: String,
   sortKeyPrefix: String,
-  linkType: LinkType
+  linkType: LinkType,
+  pageTitle: Option[String]
 )

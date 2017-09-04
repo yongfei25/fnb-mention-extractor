@@ -3,7 +3,7 @@ import types.{CategoryLink, LinkType}
 
 object DbHelper {
   def getCategoryLinksIn(conn: Connection, categories: List[String]): List[CategoryLink] = {
-    var sql = "select cl_from, cl_to, cl_sortkey, cl_sortkey_prefix, cl_type from categorylinks where cl_to in ("
+    var sql = "select cl_from, cl_to, cl_sortkey, cl_sortkey_prefix, cl_type, page_title from categorylinks left join page on page_id = cl_from where cl_to in ("
     for (i <- 1 to categories.size) {
       sql += "?"
       sql += { if (i == categories.size) ")" else "," }
@@ -24,6 +24,10 @@ object DbHelper {
           case "subcat" => LinkType.SubCat
           case "page" => LinkType.Page
           case _ => LinkType.Other
+        },
+        rs.getString(6) match {
+          case null => Option.empty
+          case s: String => Option(s)
         }
       ) :: links
     }
@@ -44,5 +48,23 @@ object DbHelper {
     val s = if (rs.next()) Option(rs.getString(1)) else Option.empty
     statement.close()
     s
+  }
+
+  def getRedirectedTitles(conn: Connection, pageIds: List[String]): List[String] = {
+    var sql = "select page_title from redirect r left join page p on p.page_id = r.rd_from where rd_title in ("
+    for (i <- pageIds.indices) {
+      sql += "?"
+      sql += { if (i == pageIds.size - 1) ")" else "," }
+    }
+    val statement = conn.prepareStatement(sql)
+    for (i <- pageIds.indices) {
+      statement.setString(i+1, pageIds(i))
+    }
+    val rs = statement.executeQuery()
+    var titles = List[String]()
+    while(rs.next()) {
+      titles = titles :+ rs.getString(1)
+    }
+    titles
   }
 }

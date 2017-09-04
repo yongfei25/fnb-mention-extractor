@@ -45,26 +45,37 @@ object Main extends App {
     def linkTitle (sortKey: String, prefix: String) = {
       sortKey.replace(prefix, "").replaceAll("\\s+", " ").trim
     }
+    def pageTitle (title: String) = {
+      title.replaceAll("_", " ").replaceAll("\\s+", " ").trim
+    }
     def excluded (title: String): Boolean = {
       excludeTitle.exists(title.contains(_))
     }
     def validTitle (title: String): Boolean = {
-      title.length > 0 && !excluded(title)
+      title.nonEmpty && !excluded(title)
     }
 
     while (cats.nonEmpty) {
-//      println(s"Getting links from categories $cats")
       val catLinks = DbHelper.getCategoryLinksIn(conn, cats)
       processed = processed ++ cats
 
       if (skipCount == 0) {
         for {
           page <- catLinks if page.linkType == LinkType.Page
-          title = linkTitle(page.sortKey, page.sortKeyPrefix) if validTitle(title)
+          title = pageTitle(page.pageTitle.getOrElse("")) if validTitle(title)
         } {
           pageQueue = pageQueue.enqueue(PageLink(title, page.from))
           labels += (title -> tag)
         }
+
+        val pageTitles = for {
+          page <- catLinks if page.linkType == LinkType.Page && page.pageTitle.isDefined
+        } yield page.pageTitle.get
+
+        // Enrich entity label by searching redirection to the existing page titles
+        val redirectedTitles = DbHelper.getRedirectedTitles(conn, pageTitles)
+        redirectedTitles.foreach { title => labels += (pageTitle(title) -> tag) }
+        println(s"Found ${redirectedTitles.length} redirected titles.")
       } else {
         skipCount -= 1
       }
