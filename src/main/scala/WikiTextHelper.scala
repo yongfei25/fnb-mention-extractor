@@ -44,7 +44,7 @@ object WikiTextHelper {
           .mkString(option.separator)
       }
       .filter(_.contains(entity))
-      .map(_.replaceAll("\n", " ").replaceAll("\\s+", " ").trim + option.stop)
+      .map(_.replaceAll("[\r\n]+", " ").replaceAll("\\s+", " ").trim + option.stop)
   }
 
   def splitLinks (sentence: String, option: AnnotateOption): Array[String] = {
@@ -111,8 +111,10 @@ object WikiTextHelper {
     }
     val tokens = annotations.flatMap { annotation =>
       val s = annotation.text.split(option.separator)
-      for (i <- s.indices) yield {
-        val t = s(i).trim
+      for {
+        i <- s.indices
+        t = s(i).trim if t.nonEmpty
+      } yield {
         if (annotation.tag == "O") {
           s"$t/${annotation.tag}"
         } else if (i == 0) {
