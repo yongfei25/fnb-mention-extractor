@@ -1,12 +1,20 @@
 import java.io.{File, FileWriter}
 import java.sql.{Connection, DriverManager}
 
+import WikiTextHelper.{AnnotateOption, SentenceOption}
+import info.bliki.wiki.filter.PlainTextConverter
+import info.bliki.wiki.model.WikiModel
 import org.mariadb.jdbc.MariaDbDataSource
 import types.{CategoryLink, LinkType}
 
-import scala.collection.mutable
+import scala.collection.immutable.Queue
 
 object Main extends App {
+  case class PageLink
+  (
+    title: String,
+    pageId: String
+  )
   override def main(args: Array[String]): Unit = {
     val host = "127.0.0.1"
     val port = 3306
@@ -25,10 +33,13 @@ object Main extends App {
       case e: Exception => e.printStackTrace()
     }
 
+    val tag = "FNB"
+    val maxTokens = 50
     val excludeTitle = Set[String]("列表", "产品", "事件")
-    val outputWriter = new FileWriter(new File("pages.txt"))
     var processed = Set[String]()
     var cats = List[String]("各國飲食")
+    var pageQueue = Queue[PageLink]()
+    var labels = Map.empty[String, String]
 
     def linkTitle (sortKey: String, prefix: String) = {
       sortKey.replace(prefix, "").replaceAll("\\s+", " ").trim
@@ -41,17 +52,16 @@ object Main extends App {
     }
 
     while (cats.nonEmpty) {
-      println(s"Getting links from categories $cats")
+//      println(s"Getting links from categories $cats")
       val catLinks = DbHelper.getCategoryLinksIn(conn, cats)
       processed = processed ++ cats
 
-      // Write pages
-      println("Writing page links")
       for {
         page <- catLinks if page.linkType == LinkType.Page
         title = linkTitle(page.sortKey, page.sortKeyPrefix) if validTitle(title)
       } {
-        outputWriter.write(s"$title, ${page.from}\n")
+        pageQueue = pageQueue.enqueue(PageLink(title, page.from))
+        labels += (title -> tag)
       }
 
       cats = catLinks
@@ -60,6 +70,27 @@ object Main extends App {
             !processed.contains(cat.sortKey)
         }
         .map(c => c.sortKey)
+    }
+
+    val wikiModel = new WikiModel("wiki/${image}", "wiki/${title}")
+    val sortedEntries = labels.keys.toArray.sortWith(_.length > _.length)
+    val sentenceOption = SentenceOption("。", "", maxTokens)
+    val annotationOption = AnnotateOption("")
+    val outputWriter = new FileWriter(new File("annotations.txt"))
+    var count = 0
+    while (pageQueue.nonEmpty) {
+      val dq = pageQueue.dequeue
+      val link = dq._1
+      pageQueue = dq._2
+      val source = DbHelper.getPageSource(conn, link.pageId)
+      if (source.nonEmpty) {
+        val text = wikiModel.render(new PlainTextConverter(), source.get)
+        val sentences = WikiTextHelper.sentencesContains(text, link.title, sentenceOption)
+        val annotations = sentences.map(WikiTextHelper.annotate(_, sortedEntries, labels, annotationOption))
+        annotations.foreach({ s => outputWriter.write(s"$s\n")})
+        count += annotations.size
+        println(s"Total annotations: $count")
+      }
     }
     outputWriter.close()
     conn.close()

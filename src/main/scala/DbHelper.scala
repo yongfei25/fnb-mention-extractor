@@ -31,4 +31,19 @@ object DbHelper {
     statement.close()
     links
   }
+
+  def getPageSource(conn: Connection, pageId: String): Option[String] = {
+    val sql =
+      """
+        |select old_text
+        |from page p left join text t on t.old_id = p.page_latest
+        |where page_id = ?;
+      """.stripMargin
+    val statement = conn.prepareStatement(sql)
+    statement.setString(1, pageId)
+    val rs = statement.executeQuery()
+    val s = if (rs.next()) Option(rs.getString(1)) else Option.empty
+    statement.close()
+    s
+  }
 }

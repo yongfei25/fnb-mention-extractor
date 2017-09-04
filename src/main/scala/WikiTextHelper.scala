@@ -9,7 +9,9 @@ object WikiTextHelper {
 
   case class SentenceOption
   (
-    stop: String
+    stop: String,
+    separator: String,
+    maxTokens: Int
   )
 
   case class AnnotateOption
@@ -34,8 +36,15 @@ object WikiTextHelper {
 
   def sentencesContains (paragraph: String, entity: String, option: SentenceOption): Array[String] = {
     val sentences = paragraph.split(Pattern.quote(option.stop))
-    sentences.filter(_.contains(entity))
-      .map(_.replaceAll("\n", "") + option.stop)
+    sentences
+      .filter(_.contains(entity))
+      .map { s =>
+        s.split(Pattern.quote(option.separator))
+          .take(option.maxTokens)
+          .mkString(option.separator)
+      }
+      .filter(_.contains(entity))
+      .map(_.replaceAll("\n", " ").replaceAll("\\s+", " ").trim + option.stop)
   }
 
   def splitLinks (sentence: String, option: AnnotateOption): Array[String] = {
@@ -76,14 +85,14 @@ object WikiTextHelper {
     }
     val textParts = text.split(Pattern.quote(found.get))
     val middle = found.get
-    val head = textParts.head
+    val head = textParts.headOption.getOrElse("")
     val tail = if (textParts.size == 2) textParts(1) else ""
     splitEntity(head, entities) ++ Array((middle, true)) ++ splitEntity(tail, entities)
   }
 
-  def annotate (sentence: String, labels: SortedMap[String, String], option: AnnotateOption): String = {
+  def annotate (sentence: String, sortedEntries: Array[String], labels: Map[String, String], option: AnnotateOption): String = {
     val textDataList = textData(sentence, option)
-    val entities = labels.keys.toList
+    val entities = sortedEntries
     val annotations = textDataList.flatMap { textData =>
       if (textData.isLink) {
         val found = entities.find { entity =>
@@ -93,7 +102,7 @@ object WikiTextHelper {
         val tag = if (found.nonEmpty) labels(found.get) else "O"
         Array(Annotation(textData.text, tag))
       } else {
-        val entitySplits = splitEntity(textData.text, entities.toArray)
+        val entitySplits = splitEntity(textData.text, entities)
         entitySplits.map { split =>
           val tag = if (split._2) labels(split._1) else "O"
           Annotation(split._1, tag)
@@ -103,12 +112,13 @@ object WikiTextHelper {
     val tokens = annotations.flatMap { annotation =>
       val s = annotation.text.split(option.separator)
       for (i <- s.indices) yield {
+        val t = s(i).trim
         if (annotation.tag == "O") {
-          s"${s(i)}/${annotation.tag}"
+          s"$t/${annotation.tag}"
         } else if (i == 0) {
-          s"${s(i)}/B-${annotation.tag}"
+          s"$t/B-${annotation.tag}"
         } else {
-          s"${s(i)}/I-${annotation.tag}"
+          s"$t/I-${annotation.tag}"
         }
       }
     }

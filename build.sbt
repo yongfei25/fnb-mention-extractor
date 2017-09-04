@@ -20,6 +20,7 @@ version := "1.0"
 // place like Sonatype or Bintray.
 libraryDependencies += "org.mariadb.jdbc" % "mariadb-java-client" % "2.1.0"
 libraryDependencies += "org.scalatest" % "scalatest_2.12" % "3.0.4"
+libraryDependencies += "info.bliki.wiki" % "bliki-core" % "3.1.0"
 
 // Want to use a published library in your project?
 // You can define other libraries as dependencies in your build like this:

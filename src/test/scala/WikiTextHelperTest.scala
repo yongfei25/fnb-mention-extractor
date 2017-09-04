@@ -13,10 +13,10 @@ class WikiTextHelperTest extends FunSuite {
     """.stripMargin
 
   test("WikiTextHelper should return sentences that contain entity") {
-    val sentences = WikiTextHelper.sentencesContains(paragraph, "BIO format", SentenceOption("."))
+    val sentences = WikiTextHelper.sentencesContains(paragraph, "BIO format", SentenceOption(".", " ", 25))
     val expected = Array(
       "The corpora comprise files divided by language, encoded in the BIO format (Ramshaw & Marcus, 1995).",
-      "The BIO format is a simple, text-based format that divides texts into single tokens per line, and, separated by a whitespace, tags to indicate which ones are named entities."
+      "The BIO format is a simple, text-based format that divides texts into single tokens per line, and, separated by a whitespace, tags to indicate which."
     )
     assert(sentences.sameElements(expected))
   }
@@ -64,15 +64,16 @@ class WikiTextHelperTest extends FunSuite {
   }
 
   test("WikiTextHelper should return annotations") {
-    val labels = SortedMap(
+    val labels = Map(
       "firefox" -> "ORG",
       "lazy dog" -> "PER",
       "faith" -> "MISC",
       "head with a brick" -> "PER",
       "life" -> "ORG"
     )
+    val entries = labels.keys.toArray.sortWith(_.length > _.length)
     val text = "The [[quick brown fox|firefox]] jumps over the [[lazy dog]]. Sometimes life is going to hit you in the head with a brick. Don't lose faith. "
-    val annotated = WikiTextHelper.annotate(text, labels, AnnotateOption(" "))
+    val annotated = WikiTextHelper.annotate(text, entries, labels, AnnotateOption(" "))
     val expected = "The/O quick/B-ORG brown/I-ORG fox/I-ORG jumps/O over/O the/O lazy/B-PER dog/I-PER ./O Sometimes/O life/B-ORG /O is/O going/O to/O hit/O you/O in/O the/O head/B-PER with/I-PER a/I-PER brick/I-PER ./O Don't/O lose/O faith/B-MISC ./O"
     assert(annotated.equals(expected))
   }
