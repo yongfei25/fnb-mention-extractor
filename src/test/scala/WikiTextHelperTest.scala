@@ -72,7 +72,7 @@ class WikiTextHelperTest extends FunSuite {
     val entries = labels.keys.toArray.sortWith(_.length > _.length)
     val text = "The [[quick brown fox|firefox]] jumps over the [[lazy dog]]. Sometimes life is going to hit you in the head with a brick. Don't lose faith. "
     val annotated = WikiTextHelper.annotate(text, entries, labels, AnnotateOption(" "))
-    val expected = "The/O quick/B-ORG brown/I-ORG fox/I-ORG jumps/O over/O the/O lazy/B-PER dog/I-PER ./O Sometimes/O life/B-ORG /O is/O going/O to/O hit/O you/O in/O the/O head/B-PER with/I-PER a/I-PER brick/I-PER ./O Don't/O lose/O faith/B-MISC ./O"
+    val expected = "The/O quick/B-ORG brown/I-ORG fox/I-ORG jumps/O over/O the/O lazy/B-PER dog/I-PER ./O Sometimes/O life/B-ORG is/O going/O to/O hit/O you/O in/O the/O head/B-PER with/I-PER a/I-PER brick/I-PER ./O Don't/O lose/O faith/B-MISC ./O"
     assert(annotated.equals(expected))
   }
 }
