@@ -1,5 +1,4 @@
 import java.sql.Connection
-
 import types.{CategoryLink, LinkType}
 
 object DbHelper {

@@ -1,8 +1,6 @@
 import WikiTextHelper.{AnnotateOption, SentenceOption, TextData}
 import org.scalatest._
 
-import scala.collection.immutable.SortedMap
-
 class WikiTextHelperTest extends FunSuite {
   val paragraph: String =
     """
