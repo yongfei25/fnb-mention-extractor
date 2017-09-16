@@ -35,6 +35,7 @@ object Main extends App {
 
     val tag = "FNB"
     val maxTokens = 50
+    val minTokens = 20
     val excludeTitle = Set[String]("列表", "产品", "事件")
     var processed = Set[String]()
     var cats = List[String]("各地飲食")
@@ -88,11 +89,14 @@ object Main extends App {
         .map(c => c.sortKey)
     }
 
-    val wikiModel = new WikiModel("wiki/${image}", "wiki/${title}")
+    // not unused for now
+    // val wikiModel = new WikiModel("wiki/${image}", "wiki/${title}")
+
     val sortedEntries = labels.keys.toArray.sortWith(_.length > _.length)
-    val sentenceOption = SentenceOption("。", "", maxTokens)
+    val sentenceOption = SentenceOption("。", "", maxTokens, minTokens)
     val annotationOption = AnnotateOption("")
     val outputWriter = new FileWriter(new File("annotations.txt"))
+    val printEvery = 500
     var count = 0
 
     while (pageQueue.nonEmpty) {
@@ -101,12 +105,17 @@ object Main extends App {
       pageQueue = dq._2
       val source = DbHelper.getPageSource(conn, link.pageId)
       if (source.nonEmpty) {
-        val text = wikiModel.render(new PlainTextConverter(), source.get)
+        val text = source.get
         val sentences = WikiTextHelper.sentencesContains(text, link.title, sentenceOption)
         val annotations = sentences.map(WikiTextHelper.annotate(_, sortedEntries, labels, annotationOption))
-        annotations.foreach({ s => outputWriter.write(s"$s\n")})
+        annotations.foreach({ s =>
+          count +=1
+          if (count % printEvery == 0) {
+            println(s)
+          }
+          outputWriter.write(s"$s\n")
+        })
         count += annotations.length
-        println(s"Total annotations: $count")
       }
     }
     outputWriter.close()
