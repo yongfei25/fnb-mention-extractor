@@ -63,7 +63,10 @@ object DbHelper {
     val rs = statement.executeQuery()
     var titles = List[String]()
     while(rs.next()) {
-      titles = titles :+ rs.getString(1)
+      val title = rs.getString(1)
+      if (title != null && title.length > 0) {
+        titles = titles :+ rs.getString(1)
+      }
     }
     titles
   }
