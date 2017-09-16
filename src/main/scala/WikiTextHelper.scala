@@ -11,7 +11,8 @@ object WikiTextHelper {
   (
     stop: String,
     separator: String,
-    maxTokens: Int
+    maxTokens: Int,
+    minTokens: Int
   )
 
   case class AnnotateOption
@@ -34,17 +35,42 @@ object WikiTextHelper {
 
   val wikiLinkPattern: Regex = """\[\[(.+?)\]\]""".r
 
+  /**
+    * Remove unwanted markup
+    * @param s - The paragraph
+    * @return
+    */
+  def removeMarkups (s: String): String = {
+    // Remove most markup text with these regex
+    s
+      // Eg: <ref name="gaiming">game</ref>。
+      .replaceAll("""<\w+>?([\w\W]+?)(<\/\w+>|\/>)""", "")
+      // Eg: {cite web|url=http://www.people.com}}
+      .replaceAll("""\{\{([\w\W]+?)\}\}""", "")
+      // Eg: {| border="0" cellpadding="0" width="70%" |}
+      .replaceAll("""\{\|([\w\W]+?)\|\}""", "")
+      // Eg: == 正餐 ==
+      .replaceAll("""==([\w\W]+?)==""", "")
+      // Eg: [[File:Roastbeef with yorkshire puddings.jpg]]
+      .replaceAll("""\[\[\w+:.+\]\]""", "")
+      // Eg: '''番菜''' (Removing the triple quotes)
+      .replaceAll("""'''""", "")
+  }
+
   def sentencesContains (paragraph: String, entity: String, option: SentenceOption): Array[String] = {
-    val sentences = paragraph.split(Pattern.quote(option.stop))
+    val sentences = removeMarkups(paragraph)
+      .split("\n")
+      .flatMap(_.split(Pattern.quote(option.stop)))
+
     sentences
-      .filter(_.contains(entity))
+      .filter({ s => !s.startsWith("*") && !s.startsWith("|") && s.contains(entity) })
       .map { s =>
         s.split(Pattern.quote(option.separator))
           .take(option.maxTokens)
           .mkString(option.separator)
       }
-      .filter(_.contains(entity))
       .map(_.replaceAll("[\r\n]+", " ").replaceAll("\\s+", " ").trim + option.stop)
+      .filter({ s => s.length >= option.minTokens })
   }
 
   def splitLinks (sentence: String, option: AnnotateOption): Array[String] = {
@@ -84,10 +110,14 @@ object WikiTextHelper {
       return Array((text, false))
     }
     val textParts = text.split(Pattern.quote(found.get))
-    val middle = found.get
-    val head = textParts.headOption.getOrElse("")
-    val tail = if (textParts.size == 2) textParts(1) else ""
-    splitEntity(head, entities) ++ Array((middle, true)) ++ splitEntity(tail, entities)
+    var result = Array[(String, Boolean)]()
+    for (i <- textParts.indices) {
+      result = result ++ splitEntity(textParts(i), entities)
+      if (i != textParts.length - 1) {
+        result = result ++ Array((found.get, true))
+      }
+    }
+    result
   }
 
   def annotate (sentence: String, sortedEntries: Array[String], labels: Map[String, String], option: AnnotateOption): String = {
