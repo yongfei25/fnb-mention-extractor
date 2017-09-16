@@ -39,7 +39,9 @@ object DbHelper {
     val sql =
       """
         |select old_text
-        |from page p left join text t on t.old_id = p.page_latest
+        |from page p
+        |left join revision r on r.rev_id = p.page_latest
+        |left join text t on t.old_id = r.rev_text_id
         |where page_id = ?;
       """.stripMargin
     val statement = conn.prepareStatement(sql)
