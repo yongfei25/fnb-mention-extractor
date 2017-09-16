@@ -105,7 +105,7 @@ object Main extends App {
         val sentences = WikiTextHelper.sentencesContains(text, link.title, sentenceOption)
         val annotations = sentences.map(WikiTextHelper.annotate(_, sortedEntries, labels, annotationOption))
         annotations.foreach({ s => outputWriter.write(s"$s\n")})
-        count += annotations.size
+        count += annotations.length
         println(s"Total annotations: $count")
       }
     }
