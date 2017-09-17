@@ -66,11 +66,11 @@ object WikiTextHelper {
       .filter({ s => !s.startsWith("*") && !s.startsWith("|") && s.contains(entity) })
       .map { s =>
         s.split(Pattern.quote(option.separator))
-          .take(option.maxTokens)
+          .take(option.maxTokens - option.stop.length)
           .mkString(option.separator)
       }
       .map(_.replaceAll("[\r\n]+", " ").replaceAll("\\s+", " ").trim + option.stop)
-      .filter({ s => s.length >= option.minTokens })
+      .filter({ s => s.length >= option.minTokens && s.contains(entity) })
   }
 
   def splitLinks (sentence: String, option: AnnotateOption): Array[String] = {
