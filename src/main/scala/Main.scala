@@ -8,6 +8,7 @@ import org.mariadb.jdbc.MariaDbDataSource
 import types.{CategoryLink, LinkType}
 
 import scala.collection.immutable.Queue
+import scala.util.Random
 
 object Main extends App {
   case class PageLink
@@ -34,8 +35,8 @@ object Main extends App {
     }
 
     val tag = "FNB"
-    val maxTokens = 50
-    val minTokens = 20
+    val maxTokens = 30
+    val minTokens = 10
     val excludeTitle = Set[String]("列表", "产品", "事件")
     var processed = Set[String]()
     var cats = List[String]("各地飲食")
@@ -98,6 +99,7 @@ object Main extends App {
     val outputWriter = new FileWriter(new File("annotations.txt"))
     val printEvery = 500
     var count = 0
+    var annotationList = List[String]()
 
     while (pageQueue.nonEmpty) {
       val dq = pageQueue.dequeue
@@ -108,16 +110,19 @@ object Main extends App {
         val text = source.get
         val sentences = WikiTextHelper.sentencesContains(text, link.title, sentenceOption)
         val annotations = sentences.map(WikiTextHelper.annotate(_, sortedEntries, labels, annotationOption))
-        annotations.foreach({ s =>
-          count +=1
-          if (count % printEvery == 0) {
-            println(s)
-          }
-          outputWriter.write(s"$s\n")
-        })
-        count += annotations.length
+        annotationList = annotationList ++ annotations
       }
     }
+
+    // Shuffle the examples
+    annotationList = Random.shuffle(annotationList)
+    annotationList.foreach({ s =>
+      count +=1
+      if (count % printEvery == 0) {
+        println(s)
+      }
+      outputWriter.write(s"$s\n")
+    })
     outputWriter.close()
     conn.close()
   }
