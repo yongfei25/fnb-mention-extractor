@@ -66,10 +66,10 @@ object WikiTextHelper {
       .filter({ s => !s.startsWith("*") && !s.startsWith("|") && s.contains(entity) })
       .map { s =>
         s.split(Pattern.quote(option.separator))
-          .take(option.maxTokens - option.stop.length)
+          .take(option.maxTokens)
           .mkString(option.separator)
       }
-      .map(_.replaceAll("[\r\n]+", " ").replaceAll("\\s+", " ").trim + option.stop)
+      .map(_.replaceAll("[\r\n]+", " ").replaceAll("\\s+", " ").trim)
       .filter({ s => s.length >= option.minTokens && s.contains(entity) })
   }
 
