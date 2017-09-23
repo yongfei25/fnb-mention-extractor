@@ -42,19 +42,21 @@ class WikiTextHelperTest extends FunSuite {
   }
 
   test("WikiTextHelper should split entity") {
-    val entities = Array("quick brown fox", "lazy dog", "faith", "head with a brick", "life")
-    val text = "The quick brown fox jumps over the lazy dog. Sometimes life is going to hit you in the head with a brick. Don't lose faith. "
-    val splits = WikiTextHelper.splitEntity(text, entities)
+    val entities = Array("quick brown fox", "lazy dog", "faith", "head with a brick", "life", "bolt")
+    val text = "Bolt, the quick brown fox jumps over the lazy dog. Sometimes life is going to hit you in the head with a brick. Don't lose faith. "
+    val splits = WikiTextHelper.splitEntity(text.toLowerCase(), entities)
     val expected = Array(
-      ("The ", false),
+      ("", false),
+      ("bolt", true),
+      (", the ", false),
       ("quick brown fox", true),
       (" jumps over the ", false),
       ("lazy dog",true),
-      (". Sometimes ", false),
+      (". sometimes ", false),
       ("life", true),
       (" is going to hit you in the ", false),
       ("head with a brick", true),
-      (". Don't lose ", false),
+      (". don't lose ", false),
       ("faith", true),
       (". ", false)
     )

@@ -37,12 +37,17 @@ object Main extends App {
     val tag = "FNB"
     val maxTokens = 30
     val minTokens = 10
+    val stopWord = "。"
     val excludeTitle = Set[String]("列表", "产品", "事件")
     var processed = Set[String]()
     var cats = List[String]("各地飲食")
     var pageQueue = Queue[PageLink]()
     var labels = Map.empty[String, String]
     var skipCount = 1 // how many levels we need to skip
+
+    // The prefix for each sentence
+    var sentencePrefix = "清区的传统小吃"
+    val numGenerator = new Random()
 
     def linkTitle (sortKey: String, prefix: String) = {
       sortKey.replace(prefix, "").replaceAll("\\s+", " ").trim
@@ -55,6 +60,12 @@ object Main extends App {
     }
     def validTitle (title: String): Boolean = {
       title.nonEmpty && !excluded(title)
+    }
+    def addPrefix (sentence: String): String = {
+      val newSentence = sentencePrefix + sentence
+      val prefixLen = numGenerator.nextInt(15)
+      sentencePrefix = newSentence.takeRight(prefixLen).replace(stopWord, "")
+      newSentence.take(maxTokens)
     }
 
     while (cats.nonEmpty) {
@@ -94,7 +105,7 @@ object Main extends App {
     // val wikiModel = new WikiModel("wiki/${image}", "wiki/${title}")
 
     val sortedEntries = labels.keys.toArray.sortWith(_.length > _.length)
-    val sentenceOption = SentenceOption("。", "", maxTokens, minTokens)
+    val sentenceOption = SentenceOption(stopWord, "", maxTokens, minTokens)
     val annotationOption = AnnotateOption("")
     val outputWriter = new FileWriter(new File("annotations.txt"))
     val printEvery = 500
@@ -108,7 +119,8 @@ object Main extends App {
       val source = DbHelper.getPageSource(conn, link.pageId)
       if (source.nonEmpty) {
         val text = source.get
-        val sentences = WikiTextHelper.sentencesContains(text, link.title, sentenceOption)
+        var sentences = WikiTextHelper.sentencesContains(text, link.title, sentenceOption)
+        sentences = sentences.map(addPrefix)
         val annotations = sentences.map(WikiTextHelper.annotate(_, sortedEntries, labels, annotationOption))
         annotationList = annotationList ++ annotations
       }
