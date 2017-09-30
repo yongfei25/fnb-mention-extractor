@@ -101,9 +101,6 @@ object Main extends App {
         .map(c => c.sortKey)
     }
 
-    // not unused for now
-    // val wikiModel = new WikiModel("wiki/${image}", "wiki/${title}")
-
     val sortedEntries = labels.keys.toArray.sortWith(_.length > _.length)
     val sentenceOption = SentenceOption(stopWord, "", maxTokens, minTokens)
     val annotationOption = AnnotateOption("")
